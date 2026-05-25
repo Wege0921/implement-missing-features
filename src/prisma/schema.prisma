@@ -1,0 +1,384 @@
+// Prisma Schema for Kingdom Family & Sermon Platform
+// This schema maps to the existing Supabase database
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  LEADER
+  MEMBER
+}
+
+enum Language {
+  en
+  am
+}
+
+enum SermonStatus {
+  draft
+  published
+}
+
+enum ProgressStatus {
+  not_started
+  in_progress
+  completed
+}
+
+enum SocialPlatform {
+  facebook
+  instagram
+  twitter
+  telegram
+  tiktok
+}
+
+enum SocialPostStatus {
+  draft
+  scheduled
+  published
+  failed
+}
+
+enum DifficultyLevel {
+  beginner
+  intermediate
+  advanced
+}
+
+enum JobType {
+  social_post
+  notification
+  email
+}
+
+enum JobStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+// Models
+model Profile {
+  id                  String    @id @default(uuid())
+  fullName            String?   @map("full_name")
+  avatarUrl           String?   @map("avatar_url")
+  role                UserRole  @default(MEMBER)
+  languagePreference  Language  @default(en) @map("language_preference")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  bookmarks           Bookmark[]
+  readingProgress     ReadingProgress[]
+  comments            Comment[]
+  socialPosts         SocialPost[]
+  learningPaths       LearningPath[]
+  moduleProgress      UserModuleProgress[]
+  pushSubscriptions   PushSubscription[]
+  communityPosts      CommunityPost[]
+  createdSermons      Sermon[]
+
+  @@map("profiles")
+}
+
+model Speaker {
+  id        String    @id @default(uuid())
+  name      String
+  bioEn     String?   @map("bio_en")
+  bioAm     String?   @map("bio_am")
+  avatarUrl String?   @map("avatar_url")
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  sermons   Sermon[]
+
+  @@map("speakers")
+}
+
+model Series {
+  id            String    @id @default(uuid())
+  titleEn       String    @map("title_en")
+  titleAm       String?   @map("title_am")
+  descriptionEn String?   @map("description_en")
+  descriptionAm String?   @map("description_am")
+  coverImage    String?   @map("cover_image")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  sermons       Sermon[]
+
+  @@map("series")
+}
+
+model Topic {
+  id        String        @id @default(uuid())
+  nameEn    String        @map("name_en")
+  nameAm    String?       @map("name_am")
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  // Relations
+  sermons   SermonTopic[]
+
+  @@map("topics")
+}
+
+model Sermon {
+  id                  String            @id @default(uuid())
+  titleEn             String            @map("title_en")
+  titleAm             String?           @map("title_am")
+  summaryEn           String?           @map("summary_en")
+  summaryAm           String?           @map("summary_am")
+  scriptureReferences Json              @default("[]") @map("scripture_references")
+  speakerId           String?           @map("speaker_id")
+  seriesId            String?           @map("series_id")
+  videoUrl            String?           @map("video_url")
+  videoThumbnail      String?           @map("video_thumbnail")
+  audioUrl            String?           @map("audio_url")
+  pdfUrl              String?           @map("pdf_url")
+  memoryVerseEn       String?           @map("memory_verse_en")
+  memoryVerseAm       String?           @map("memory_verse_am")
+  prayerPoints        Json              @default("[]") @map("prayer_points")
+  discussionQuestions Json              @default("[]") @map("discussion_questions")
+  isPublished         Boolean           @default(false) @map("is_published")
+  publishedAt         DateTime?         @map("published_at")
+  scheduledAt         DateTime?         @map("scheduled_at")
+  viewCount           Int               @default(0) @map("view_count")
+  createdById         String?           @map("created_by")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  speaker             Speaker?          @relation(fields: [speakerId], references: [id], onDelete: SetNull)
+  series              Series?           @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  createdBy           Profile?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  topics              SermonTopic[]
+  bookmarks           Bookmark[]
+  readingProgress     ReadingProgress[]
+  comments            Comment[]
+  socialPosts         SocialPost[]
+  communityPosts      CommunityPost[]
+
+  @@map("sermons")
+}
+
+model SermonTopic {
+  sermonId  String  @map("sermon_id")
+  topicId   String  @map("topic_id")
+
+  sermon    Sermon  @relation(fields: [sermonId], references: [id], onDelete: Cascade)
+  topic     Topic   @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([sermonId, topicId])
+  @@map("sermon_topics")
+}
+
+model Bookmark {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  sermonId  String    @map("sermon_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user      Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sermon    Sermon    @relation(fields: [sermonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sermonId])
+  @@map("bookmarks")
+}
+
+model ReadingProgress {
+  id              String          @id @default(uuid())
+  userId          String          @map("user_id")
+  sermonId        String          @map("sermon_id")
+  status          ProgressStatus  @default(not_started)
+  progressPercent Int             @default(0) @map("progress_percent")
+  lastReadAt      DateTime        @default(now()) @map("last_read_at")
+
+  // Relations
+  user            Profile         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sermon          Sermon          @relation(fields: [sermonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sermonId])
+  @@map("reading_progress")
+}
+
+model Comment {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  sermonId  String    @map("sermon_id")
+  content   String
+  parentId  String?   @map("parent_id")
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user      Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sermon    Sermon    @relation(fields: [sermonId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+
+  @@map("comments")
+}
+
+model SocialPost {
+  id              String            @id @default(uuid())
+  sermonId        String            @map("sermon_id")
+  platform        SocialPlatform
+  captionEn       String?           @map("caption_en")
+  captionAm       String?           @map("caption_am")
+  imageUrl        String?           @map("image_url")
+  status          SocialPostStatus  @default(draft)
+  scheduledFor    DateTime?         @map("scheduled_for")
+  publishedAt     DateTime?         @map("published_at")
+  externalPostId  String?           @map("external_post_id")
+  createdById     String?           @map("created_by")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  sermon          Sermon            @relation(fields: [sermonId], references: [id], onDelete: Cascade)
+  createdBy       Profile?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@map("social_posts")
+}
+
+model ScheduledJob {
+  id           String     @id @default(uuid())
+  jobType      JobType    @map("job_type")
+  payload      Json       @default("{}")
+  scheduledFor DateTime   @map("scheduled_for")
+  status       JobStatus  @default(pending)
+  attempts     Int        @default(0)
+  lastError    String?    @map("last_error")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  @@map("scheduled_jobs")
+}
+
+model LearningPath {
+  id                        String          @id @default(uuid())
+  titleEn                   String          @map("title_en")
+  titleAm                   String?         @map("title_am")
+  descriptionEn             String?         @map("description_en")
+  descriptionAm             String?         @map("description_am")
+  coverImage                String?         @map("cover_image")
+  difficultyLevel           DifficultyLevel @default(beginner) @map("difficulty_level")
+  estimatedDurationMinutes  Int?            @map("estimated_duration_minutes")
+  isPublished               Boolean         @default(false) @map("is_published")
+  sortOrder                 Int             @default(0) @map("sort_order")
+  createdById               String?         @map("created_by")
+  createdAt                 DateTime        @default(now()) @map("created_at")
+  updatedAt                 DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  createdBy                 Profile?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  modules                   LearningModule[]
+
+  @@map("learning_paths")
+}
+
+model LearningModule {
+  id                        String               @id @default(uuid())
+  learningPathId            String               @map("learning_path_id")
+  titleEn                   String               @map("title_en")
+  titleAm                   String?              @map("title_am")
+  contentEn                 String?              @map("content_en")
+  contentAm                 String?              @map("content_am")
+  videoUrl                  String?              @map("video_url")
+  sortOrder                 Int                  @default(0) @map("sort_order")
+  estimatedDurationMinutes  Int?                 @map("estimated_duration_minutes")
+  createdAt                 DateTime             @default(now()) @map("created_at")
+  updatedAt                 DateTime             @updatedAt @map("updated_at")
+
+  // Relations
+  learningPath              LearningPath         @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  quizzes                   Quiz[]
+  userProgress              UserModuleProgress[]
+
+  @@map("learning_modules")
+}
+
+model Quiz {
+  id            String          @id @default(uuid())
+  moduleId      String          @map("module_id")
+  questionEn    String          @map("question_en")
+  questionAm    String?         @map("question_am")
+  optionsEn     Json            @default("[]") @map("options_en")
+  optionsAm     Json?           @map("options_am")
+  correctIndex  Int             @map("correct_index")
+  explanationEn String?         @map("explanation_en")
+  explanationAm String?         @map("explanation_am")
+  sortOrder     Int             @default(0) @map("sort_order")
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  // Relations
+  module        LearningModule  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@map("quizzes")
+}
+
+model UserModuleProgress {
+  id           String          @id @default(uuid())
+  userId       String          @map("user_id")
+  moduleId     String          @map("module_id")
+  status       ProgressStatus  @default(not_started)
+  quizScore    Int?            @map("quiz_score")
+  quizAttempts Int             @default(0) @map("quiz_attempts")
+  completedAt  DateTime?       @map("completed_at")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  user         Profile         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module       LearningModule  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, moduleId])
+  @@map("user_module_progress")
+}
+
+model PushSubscription {
+  id        String    @id @default(uuid())
+  userId    String?   @map("user_id")
+  endpoint  String    @unique
+  p256dh    String
+  auth      String
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user      Profile?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("push_subscriptions")
+}
+
+model CommunityPost {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  content   String
+  sermonId  String?   @map("sermon_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user      Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sermon    Sermon?   @relation(fields: [sermonId], references: [id], onDelete: SetNull)
+
+  @@map("community_posts")
+}

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Noto_Sans_Ethiopic } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Toaster } from '@/components/ui/toaster'
+import { TRPCProvider } from '@/components/providers/trpc-provider'
 import '@/lib/translations'
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration'
 import { InstallBanner } from '@/components/pwa/InstallBanner'
@@ -72,11 +73,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${notoSansEthiopic.variable}`} suppressHydrationWarning>
       <body className="font-sans antialiased bg-background">
-        <ServiceWorkerRegistration />
-        <UpdateBanner />
-        {children}
-        <InstallBanner />
-        <Toaster />
+        <TRPCProvider>
+          <ServiceWorkerRegistration />
+          <UpdateBanner />
+          {children}
+          <InstallBanner />
+          <Toaster />
+        </TRPCProvider>
         <Analytics />
         <SpeedInsights />
       </body>
