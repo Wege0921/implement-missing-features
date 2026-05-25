@@ -1,0 +1,32 @@
+{
+  "name": "Kingdom Family Platform",
+  "short_name": "Kingdom",
+  "description": "Weekly sermon summaries and learning from the Keys of the Kingdom series",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf5eb",
+  "theme_color": "#8B6914",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-512x512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["education", "lifestyle", "religion"],
+  "lang": "en",
+  "dir": "ltr",
+  "shortcuts": [
+    { "name": "Latest Sermons", "url": "/sermons", "description": "Browse latest sermons" },
+    { "name": "Learn", "url": "/learn", "description": "Learning paths" },
+    { "name": "Community", "url": "/community", "description": "Community feed" }
+  ]
+}
